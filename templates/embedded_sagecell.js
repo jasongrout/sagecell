@@ -3,6 +3,9 @@
 // Make a global sagecell namespace for our functions
 window.sagecell = {};
 
+var scripts = document.head.getElementsByTagName("script");
+var current = scripts[scripts.length-1];
+current = document.body
 sagecell.init = (function(callback) {
     var load = function ( config ) {
 	// We can't use the jquery .append to load javascript because then the script tag disappears.  At least mathjax depends on the script tag 
@@ -15,15 +18,15 @@ sagecell.init = (function(callback) {
 	}
 	if (config.src!==undefined) { script.src = config.src; }
 	if (config.text!==undefined) {script.text = config.text;}
-	document.getElementsByTagName("head")[0].appendChild(script);
+        current.parentNode.insertBefore(script, current.nextSibling);
     };
 
     sagecell.init_callback = callback
-
+ 
     // many stylesheets that have been smashed together into all.min.css
-    $("head").append("<link rel='stylesheet' href='{{- url_for('static', filename='all.min.css', _external=True) -}}'></link>");
-    $("head").append("<link rel='stylesheet' href='{{- url_for('static', filename='jqueryui/css/sage/jquery-ui-1.8.17.custom.css', _external=True) -}}'></link>");
-    $("head").append("<link rel='stylesheet' href='{{- url_for('static', filename='colorpicker/css/colorpicker.css', _external=True) -}}'></link>");
+    $(current).insertAfter("<link rel='stylesheet' href='{{- url_for('static', filename='all.min.css', _external=True) -}}'></link>");
+    $(current).insertAfter("<link rel='stylesheet' href='{{- url_for('static', filename='jqueryui/css/sage/jquery-ui-1.8.17.custom.css', _external=True) -}}'></link>");
+    $(current).insertAfter("<link rel='stylesheet' href='{{- url_for('static', filename='colorpicker/css/colorpicker.css', _external=True) -}}'></link>");
 
     // Mathjax.  We need a separate script tag for mathjax since it later comes back and looks at the script tag.
     load({'text': 'MathJax.Hub.Config({  ' +
@@ -125,7 +128,7 @@ sagecell.makeSagecell = (function(args) {
 			       hide[i] === 'messages' ||
                                hide[i] === 'sessionTitle') {
 			$(outputLocation+" .sagecell_"+hide[i]).css("display", "none");
-                        $('head').append("<style type='text/css'> "+outputLocation+" .sagecell_"+hide[i]+ "{display: none;} </style>");
+                        $(current).insertAfter("<style type='text/css'> "+outputLocation+" .sagecell_"+hide[i]+ "{display: none;} </style>");
 
 		    } else if (hide[i] === 'done' ||
 			       hide[i] === 'sessionFiles' ||

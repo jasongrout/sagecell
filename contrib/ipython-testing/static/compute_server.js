@@ -150,11 +150,10 @@ sagecell.Session.prototype.output = function(html, block_id, create) {
     return out;
 };
 
-sagecell.Session.prototype.handle_output = function (msg_type, content, header) {
-	var block_id = null;
-	if (header.metadata !== undefined && header.metadata.interact_id !== undefined) {
-		block_id = header.metadata.interact_id;
-	}
+sagecell.Session.prototype.handle_output = function (msg_type, content, metadata) {
+	// We assume here that, for example, interact_id is not 0
+	var block_id = metadata.interact_id || null;
+	console.log(block_id);
 	// Handle each stream type.  This should probably be separated out into different functions.
     if (msg_type === "stream") {
         var new_pre = !$(this.output_blocks[block_id]).children().last().hasClass("sagecell_" + content.name);
@@ -941,7 +940,7 @@ IPython.Kernel.prototype._handle_iopub_reply = function (e) {
     var reply = $.parseJSON(e.data);
     var content = reply.content;
     var msg_type = reply.header.msg_type;
-    var header = reply.header;
+    var metadata = reply.metadata || {};
     var callbacks = this.get_callbacks_for_msg(reply.parent_header.msg_id);
     if (msg_type !== 'status' && callbacks === undefined) {
         // Message not from one of this notebook's cells and there are no
@@ -952,7 +951,7 @@ IPython.Kernel.prototype._handle_iopub_reply = function (e) {
     if ($.inArray(msg_type, output_types) >= 0) {
         var cb = callbacks['output'];
         if (cb !== undefined) {
-            cb(msg_type, content, header);
+            cb(msg_type, content, metadata);
         }
     } else if (msg_type === 'status') {
         if (content.execution_state === 'busy') {
@@ -966,7 +965,7 @@ IPython.Kernel.prototype._handle_iopub_reply = function (e) {
     } else if (msg_type === 'clear_output') {
         var cb = callbacks['clear_output'];
         if (cb !== undefined) {
-            cb(content, header);
+            cb(content, metadata);
         }
     };
 };

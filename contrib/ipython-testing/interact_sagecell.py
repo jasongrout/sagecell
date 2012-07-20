@@ -1200,10 +1200,7 @@ def default_to_index(values, default):
         index = i
     return index
 
-imports = {"Checkbox": Checkbox, "InputBox": InputBox, "InputGrid": InputGrid,
-           "Selector": Selector, "DiscreteSlider": DiscreteSlider,
-           "ContinuousSlider": ContinuousSlider, "MultiSlider": MultiSlider,
-           "ColorSelector": ColorSelector, "Selector": Selector,
-           "Button": Button, "ButtonBar": ButtonBar, "HtmlBox": HtmlBox,
-           "UpdateButton": UpdateButton}
+__all__ = ['Checkbox', 'InputBox', 'InputGrid', 'Selector', 'DiscreteSlider',
+           'ContinuousSlider', 'MultiSlider', 'ColorSelector', 'Selector',
+           'Button', 'ButtonBar', 'HtmlBox', 'UpdateButton']
 

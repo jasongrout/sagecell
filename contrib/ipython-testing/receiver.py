@@ -118,6 +118,8 @@ sage.misc.session.init()
 
 # Ensure unique random state after forking
 set_random_seed()
+import interact_sagecell
+from interact_compatibility import *
 """
             exec sage_code in user_ns
         import interact_sagecell
@@ -125,7 +127,6 @@ set_random_seed()
         # overwrite Sage's interact command with our own
         user_ns["interact"] = interact_sagecell.interact_func(ka.session, ka.iopub_socket)
         user_ns.update(interact_sagecell.imports)
-        user_ns.update(interact_compatibility.imports)
         sys._sage_.update_interact = interact_sagecell.update_interact
 
     """

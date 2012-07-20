@@ -500,7 +500,5 @@ def text_control(value=""):
     """
     return HtmlBox(value=value)
 
-imports = {"slider": slider, "range_slider": range_slider,
-           "input_box": input_box, "color_selector": color_selector,
-           "selector": selector, "input_grid": input_grid,
-           "text_control": text_control}
+__all__ = ['slider', 'range_slider', 'input_box', 'color_selector',
+           'selector', 'input_grid', 'text_control', 'checkbox']

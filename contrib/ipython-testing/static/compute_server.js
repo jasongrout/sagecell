@@ -144,8 +144,10 @@ sagecell.Session.prototype.execute = function (code) {
             {"message": JSON.stringify({"header": {"msg_type": "execute_request"},
                                         "content": {"code": code}})},
             function (data) {
+            	var queryurl = sagecell.URLs.root + "?q=" + JSON.parse(data).query;
                 that.outputDiv.find("div.sagecell_permalink a.sagecell_permalink_query")
-                    .attr("href", sagecell.URLs.root + "?q=" + JSON.parse(data).query);
+                    .attr("href",queryurl)
+                    .append("<img src=http://chart.apis.google.com/chart?cht=qr&chs=200x200&chld=L&choe=UTF-8&chl="+encodeURIComponent(queryurl)+"/>");
                 that.outputDiv.find("div.sagecell_permalink a.sagecell_permalink_zip")
                     .attr("href", sagecell.URLs.root + "?z=" + JSON.parse(data).zip);
             });

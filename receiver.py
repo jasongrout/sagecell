@@ -3,12 +3,16 @@ import zmq
 from zmq import ssh
 import sys
 from misc import Timer
+from zmq.eventloop import ioloop
+
+import json
 
 class Receiver(object):
     def __init__(self, filename, ip):
         self.context = zmq.Context()
-        self.dealer = self.context.socket(zmq.DEALER)
-        self.port = self.dealer.bind_to_random_port("tcp://%s" % ip)
+        dealer = self.context.socket(zmq.DEALER)
+        self.port = dealer.bind_to_random_port("tcp://%s" % ip)
+        self.zmqstream = zmq.eventloop.zmqstream.ZMQStream(dealer)
         print self.port
         sys.stdout.flush()
         self.sage_mode = self.setup_sage()
@@ -19,29 +23,27 @@ class Receiver(object):
         self.filename = filename
         self.timer = Timer("", reset=True)
 
-    def start(self):
-        self.listen = True
-        while self.listen:
-            logging.debug("Polling: %s"%self.timer)
-            source = self.dealer.recv()
-            msg = self.dealer.recv_pyobj()
-
-            msg_type = "invalid_message"
-            if msg.get("type") is not None:
-                msgtype = msg["type"]
-                if hasattr(self, msgtype):
-                    msg_type = msgtype
-
-            if msg.get("content") is None:
-                msg["content"] = {}
-
-            logging.debug("Start handler %s: %s"%(msg_type, self.timer))
-            handler = getattr(self, msg_type)
+    def handler(self, multipart_msg):
+        source, msg = multipart_msg
+        msg = json.loads(msg)
+        msg.setdefault("content", {})
+        msg.setdefault("type", "invalid_message")
+        try:
+            logging.debug("Start handler %s: %s"%(msg, self.timer))
+            handler = getattr(self, msg["type"])
+            # should make a thread for the handler
             response = handler(msg["content"])
-            logging.debug("Finished handler %s: %s"%(msg_type, self.timer))
+            logging.debug("Finished handler %s: %s"%(msg, self.timer))
+        except AttributeError:
+            response = self.invalid_message(msg)
 
-            self.dealer.send(source, zmq.SNDMORE)
-            self.dealer.send_pyobj(response)
+        self.dealer.send(source, zmq.SNDMORE)
+        self.dealer.send_json(response)
+
+    def start(self):
+        ioloop.install()
+        self.zmqstream.on_recv(self.handler)
+        ioloop.IOLoop.instance().start()
 
     def _form_message(self, content, error=False):
         return {"content": content,
@@ -169,9 +171,9 @@ set_random_seed()
 
     def remove_computer(self, msg_content):
         """Handler for remove_computer messages."""
-        self.listen = False
+        logging.debug("Stopping")
+        ioloop.IOLoop.instance().stop()
         return self.purge_kernels(msg_content)
-
 
 if __name__ == '__main__':
     filename = sys.argv[2]
@@ -181,5 +183,8 @@ if __name__ == '__main__':
     logging.debug('started')
     ip = sys.argv[1]
     receiver = Receiver(filename, ip)
-    receiver.start()
+    try:
+        receiver.start()
+    except Exception as e:
+        logging.exception(e)
     logging.debug('ended')

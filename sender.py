@@ -2,7 +2,7 @@ import uuid
 import threading
 import zmq
 from zmq.eventloop.zmqstream import ZMQStream
-import pickle
+import json
 
 class AsyncSender(object):
     """
@@ -119,10 +119,10 @@ class AsyncSender(object):
         sock.setsockopt(zmq.IDENTITY, _id)
         sock.connect(self.filename)
         sock.send(comp_id, zmq.SNDMORE)
-        sock.send_pyobj(msg)
+        sock.send_json(msg)
 
         source = sock.recv()
-        reply = sock.recv_pyobj()
+        reply = sock.recv_json()
         retval = None
         if source == comp_id:
             retval = reply
@@ -130,7 +130,7 @@ class AsyncSender(object):
         sock.close()
 
         return retval
-    
+
     def send_msg_async(self, msg, comp_id, callback):
         _id = str(uuid.uuid4())
         context = zmq.Context()
@@ -138,15 +138,15 @@ class AsyncSender(object):
         sock.setsockopt(zmq.IDENTITY, _id)
         sock.connect(self.filename)
         stream = ZMQStream(sock)
-        
+
         @stream.on_recv
         def on_recv(msg):
-            reply = pickle.loads(msg[1])
+            reply = json.loads(msg[1])
             stream.close()
             if msg[0] == comp_id:
                 callback(reply)
             else:
                 callback(None)
         sock.send(comp_id, zmq.SNDMORE)
-        sock.send_pyobj(msg)
+        sock.send_json(msg)
     

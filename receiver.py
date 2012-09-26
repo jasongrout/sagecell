@@ -10,9 +10,9 @@ import json
 class Receiver(object):
     def __init__(self, filename, ip):
         self.context = zmq.Context()
-        dealer = self.context.socket(zmq.DEALER)
-        self.port = dealer.bind_to_random_port("tcp://%s" % ip)
-        self.zmqstream = zmq.eventloop.zmqstream.ZMQStream(dealer)
+        self.dealer = self.context.socket(zmq.DEALER)
+        self.port = self.dealer.bind_to_random_port("tcp://%s" % ip)
+        self.zmqstream = zmq.eventloop.zmqstream.ZMQStream(self.dealer)
         print self.port
         sys.stdout.flush()
         self.sage_mode = self.setup_sage()
@@ -29,14 +29,14 @@ class Receiver(object):
         msg.setdefault("content", {})
         msg.setdefault("type", "invalid_message")
         try:
-            logging.debug("Start handler %s: %s"%(msg, self.timer))
+            self.timer()
+            logging.debug("Start %s"%(msg["type"]))
             handler = getattr(self, msg["type"])
             # should make a thread for the handler
             response = handler(msg["content"])
-            logging.debug("Finished handler %s: %s"%(msg, self.timer))
         except AttributeError:
             response = self.invalid_message(msg)
-
+        logging.debug("Finished %s: %s, %s"%(msg["type"], self.timer, (source,response)))
         self.dealer.send(source, zmq.SNDMORE)
         self.dealer.send_json(response)
 
@@ -180,11 +180,12 @@ if __name__ == '__main__':
     import logging
     import uuid
     logging.basicConfig(filename=filename,format=str(uuid.uuid4()).split('-')[0]+': %(asctime)s %(message)s',level=logging.DEBUG)
-    logging.debug('started')
+    logging.debug('*'*40+'started')
     ip = sys.argv[1]
     receiver = Receiver(filename, ip)
     try:
         receiver.start()
     except Exception as e:
         logging.exception(e)
-    logging.debug('ended')
+    logging.debug('*'*40+'ended')
+

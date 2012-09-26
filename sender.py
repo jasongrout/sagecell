@@ -143,6 +143,7 @@ class AsyncSender(object):
         def on_recv(msg):
             reply = json.loads(msg[1])
             stream.close()
+            print "Received message: %s"%(msg,)
             if msg[0] == comp_id:
                 callback(reply)
             else:

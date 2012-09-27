@@ -30,13 +30,13 @@ class Receiver(object):
         msg.setdefault("type", "invalid_message")
         try:
             self.timer()
-            logging.debug("Start %s"%(msg["type"]))
+            logging.debug("Request %s, %s"%(source, msg))
             handler = getattr(self, msg["type"])
             # should make a thread for the handler
             response = handler(msg["content"])
         except AttributeError:
             response = self.invalid_message(msg)
-        logging.debug("Finished %s: %s, %s"%(msg["type"], self.timer, (source,response)))
+        logging.debug("Finished request %s %s: %s, %s"%(source, msg["type"], self.timer, response))
         self.dealer.send(source, zmq.SNDMORE)
         self.dealer.send_json(response)
 

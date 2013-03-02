@@ -61,6 +61,7 @@ sagecell.Session = function (outputDiv, language, k, linked) {
     this.last_requests = {};
     this.sessionContinue = true;
     this.namespaces = {};
+    this.controls = {};
     // Set this object because we aren't loading the full IPython JavaScript library
     IPython.notification_widget = {"set_message": sagecell.log};
     $.post = function (url, callback) {
@@ -365,6 +366,9 @@ sagecell.Session.prototype.display_handlers = {
         control.update(data.namespace, data.variable);
     }
     ,'application/sage-interact-variable': function(data, block_id, filepath) {this.update_variable(data.namespace, data.variable, data.control);}
+    ,'application/sage-interact-control-update': function(data, block_id, filepath) {
+        var c = this.controls[data.control];
+        $.proxy(c.update_widget,c)(data.msg);}
 }
 
 
@@ -376,6 +380,7 @@ sagecell.Session.prototype.register_control = function(namespace, variable, cont
         this.namespaces[namespace][variable] = []
     }
     this.namespaces[namespace][variable].push(control);
+    this.controls[control.control_id] = control;
 }
 
 sagecell.Session.prototype.get_variable_controls = function(namespace, variable) {
@@ -458,7 +463,9 @@ sagecell.InteractControls.Slider.prototype.update = function (namespace, variabl
                                    }});
     }
 }
-
+sagecell.InteractControls.Slider.prototype.update_widget = function(msg) {
+    this.control.slider('value', msg.value);
+}
 
 sagecell.InteractControls.ExpressionBox = sagecell.InteractControls.InteractControl();
 sagecell.InteractControls.ExpressionBox.prototype.create = function (data, block_id) {

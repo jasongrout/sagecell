@@ -20,6 +20,8 @@ E.create()
 D=input('xy',ns,'x')
 D.create()
 
+with interact
+
 '''
 
 from uuid import uuid4
@@ -27,7 +29,8 @@ import symtable
 import re
 import tokenize
 from keyword import iskeyword
-from collections import namedtuple
+from collections import namedtuple, defaultdict
+from itertools import chain
 
 VariableUpdate = namedtuple('VariableUpdate', ['value', 'control'])
 
@@ -61,6 +64,7 @@ class InteractiveNamespace(dict):
         """
         dict.__init__(self,*args,**kwargs)
         self.id = 'namespace-'+unicode(uuid4())
+        self.__dependencies__ = defaultdict(set)
 
     def __setitem__(self, key, value):
         """
@@ -77,11 +81,16 @@ class InteractiveNamespace(dict):
         else:
             control = None
         dict.__setitem__(self, key, value)
+        for c in self.__dependencies__[key]:
+            msg = c.control_update({'control': control, 'variable': key})
+            sys._sage_.display_message({'text/plain': 'control update',
+                                        'application/sage-interact-control-update': {'control': c.id, 'msg': msg}})
         # we don't send the value because it may not be jsonalizable
-        sys._sage_.display_message({'text/plain': 'variable changed',
-                                    'application/sage-interact-variable': {'namespace': self.id,
-                                                                           'variable': key,
-                                                                           'control': control}})
+        #sys._sage_.display_message({'text/plain': 'variable changed',
+        #                            'application/sage-interact-variable': {'namespace': self.id,
+        #                                                                   'variable': key,
+        #                                                                   'control': control}})
+
     def multiset(self, d, control=None):
         """
         Set multiple variables at a time
@@ -93,11 +102,26 @@ class InteractiveNamespace(dict):
         """
         for k,v in d.iteritems():
             dict.__setitem__(self, k, v)
+        controls = set()
+        controls.update(*[self.__dependencies__[k] for k in d])
+        for c in controls:
+            msg = c.control_update({'control': control, 'variable': d.keys()})
+            sys._sage_.display_message({'text/plain': 'control update',
+                                        'application/sage-interact-control-update': {'control': c.id, 'msg': msg}})
         # we don't send the value because it may not be jsonalizable
-        sys._sage_.display_message({'text/plain': 'variable changed',
-                                    'application/sage-interact-variable': {'namespace': self.id,
-                                                                           'variable': d.keys(),
-                                                                           'control': control}})
+        #sys._sage_.display_message({'text/plain': 'variable changed',
+        #                            'application/sage-interact-variable': {'namespace': self.id,
+        #                                                                   'variable': d.keys(),
+        #                                                                   'control': control}})
+
+    def register(self, control, var):
+        """
+        Register a control's dependencies
+
+        These controls will get notified when a variable is updated 
+        """
+        for v in var:
+            self.__dependencies__[v].add(control)
 
 __default_namespace__ = None
 from contextlib import contextmanager
@@ -139,6 +163,8 @@ class Control(object):
             global __default_namespace__
             namespace = __default_namespace__
         self.ns = namespace
+        self.ns.register(self, self.var)
+
 
     def create(self):
         """

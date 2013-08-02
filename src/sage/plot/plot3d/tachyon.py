@@ -320,12 +320,9 @@ class Tachyon(SageObject):
             filename = graphics_filename()
             self.save(filename, verbose=verbose, extra_opts=extra_opts)
             if sage.misc.misc.EMBEDDED_MODE['frontend']=='sagecell':
-                import json #TODO: be smart about which json
                 import sys
-                sys._sage_upload_file_pipe.send_bytes(json.dumps([filename]))
-                sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
-                msg={'text/filename': filename}
-                sys._sage_messages.message_queue.display(msg)
+                msg={'text/image-filename': filename}
+                sys._sage_.display_message(msg)
             return
         filename = tmp_filename(ext='.png')
         self.save(filename, verbose=verbose, extra_opts=extra_opts)

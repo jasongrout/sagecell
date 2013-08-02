@@ -2160,7 +2160,7 @@ def view(objects, title='Sage', debug=False, sep='', tiny=False,
             if misc.EMBEDDED_MODE['frontend']=='sagecell':
                 mathexpr=mathjax_expr.replace('<html>','').replace('</html>','')
                 import sys
-                sys._sage_messages.message_queue.display({'text/html':mathexpr})
+                sys._sage_.display_message({'text/plain': 'math', 'text/html': mathexpr})
             else:
                 print mathjax_expr
         else:
@@ -2171,11 +2171,7 @@ def view(objects, title='Sage', debug=False, sep='', tiny=False,
                 debug=debug, engine=engine)
             if misc.EMBEDDED_MODE['frontend']=='sagecell':
                 import sys
-                import json #TODO: be smart about which json
-                sys._sage_upload_file_pipe.send_bytes(json.dumps([png_file]))
-                sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
-                msg={'text/filename': png_file}
-                sys._sage_messages.message_queue.display(msg)
+                sys._sage_.display_message({'text/plain': 'math', 'text/image-filename': png_file})
             else:
                 print '<html><img src="%s"></html>'%png_link  # put comma at end of line?
         return

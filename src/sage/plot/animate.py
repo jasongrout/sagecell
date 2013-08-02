@@ -391,12 +391,9 @@ www.ffmpeg.org, or use 'convert' to produce gifs instead."""
                 check_call(cmd, shell=True)
                 import sage.misc.misc as misc
                 if misc.EMBEDDED_MODE and misc.EMBEDDED_MODE['frontend']=='sagecell':
-                    import json #TODO: be smart about which json
                     import sys
-                    sys._sage_upload_file_pipe.send_bytes(json.dumps([savefile]))
-                    sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
-                    msg={'text/filename': os.path.basename(savefile)}
-                    sys._sage_messages.message_queue.display(msg)
+                    msg={'text/image-filename': os.path.basename(savefile)}
+                    sys._sage_.display_message(msg)
 
                 if show_path:
                     print "Animation saved to file %s." % savefile

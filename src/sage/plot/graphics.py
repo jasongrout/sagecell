@@ -1792,18 +1792,17 @@ class Graphics(SageObject):
             kwds.setdefault('filename', graphics_filename())
             filename=kwds['filename']
             self.save(**kwds)
-            import sys
             if sage.misc.misc.EMBEDDED_MODE['frontend']=='sagecell':
-                import json
-                sys._sage_upload_file_pipe.send_bytes(json.dumps([filename]))
-                sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
+                import sys
+                sys._sage_.sent_files[filename] = os.path.getmtime(filename)
 
             if linkmode:
                 return "<img src='cell://%s'>"%filename
             else:
                 if sage.misc.misc.EMBEDDED_MODE['frontend']=='sagecell':
-                    msg={'text/filename': filename}
-                    sys._sage_messages.message_queue.display(msg)
+                    msg={'text/image-filename': filename}
+                    import sys
+                    sys._sage_.display_message(msg)
                 else:
                     html("<img src='cell://%s'>"%filename)
         else:
@@ -3174,12 +3173,10 @@ class GraphicsArray(SageObject):
         if sage.misc.misc.EMBEDDED_MODE:
             self.save(filename, dpi=dpi, figsize=self._figsize, axes = axes, **args)
             if sage.misc.misc.EMBEDDED_MODE['frontend']=='sagecell':
-                import json #TODO: be smart about which json
+                msg={'text/image-filename': filename}
                 import sys
-                sys._sage_upload_file_pipe.send_bytes(json.dumps([filename]))
-                sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
-                msg={'text/filename': filename}
-                sys._sage_messages.message_queue.display(msg)
+                sys._sage_.display_message(msg)
+                sys._sage_.sent_files[filename] = os.path.getmtime(filename)
             return
         self._render(filename, dpi=dpi, figsize=self._figsize, axes = axes, **args)
         os.system('%s %s 2>/dev/null 1>/dev/null &'%(

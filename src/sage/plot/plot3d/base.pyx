@@ -1147,12 +1147,9 @@ end_scene""" % (render_params.antialiasing,
             T = self._prepare_for_tachyon(frame, axes, frame_aspect_ratio, aspect_ratio, zoom)
             tachyon_rt(T.tachyon(), filename_full, verbosity, True, opts)
             if EMBEDDED_MODE and EMBEDDED_MODE['frontend']=='sagecell':
-                msg={}
-                import json #TODO: be smart about which json
-                sys._sage_upload_file_pipe.send_bytes(json.dumps([filename_full]))
-                sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
-                msg['text/filename']=filename_full
-                sys._sage_messages.message_queue.display(msg)
+                msg={'text/image-filename': filename_full}
+                sys._sage_.display_message(msg)
+                sys._sage_.sent_files[filename_full] = os.path.getmtime(filename_full)
 
             import sage.misc.viewer
             viewer_app = sage.misc.viewer.png_viewer()
@@ -1190,13 +1187,9 @@ end_scene""" % (render_params.antialiasing,
             viewer_app = os.path.join(sage.misc.misc.SAGE_LOCAL, "bin/jmol")
 
             if EMBEDDED_MODE and EMBEDDED_MODE['frontend']=='sagecell':
-                msg={}
-                import json #TODO: be smart about which json
-                sys._sage_upload_file_pipe.send_bytes(json.dumps([archive_name]))
-                sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
-                msg['application/x-jmol']=archive_name
-                sys._sage_messages.message_queue.display(msg)
-
+                msg={'application/x-jmol': archive_name}
+                sys._sage_.display_message(msg)
+                sys._sage_.sent_files[archive_name] = os.path.getmtime(archive_name)
             else:
                 # We need a script to load the file
                 if EMBEDDED_MODE and EMBEDDED_MODE['frontend']=='notebook':
@@ -1212,7 +1205,7 @@ end_scene""" % (render_params.antialiasing,
             # If the server has a Java installation we can make better static images with Jmol
             # Test for Java then make image with Jmol or Tachyon if no JavaVM
             # TODO: Support sage cell server
-            if EMBEDDED_MODE:
+            if EMBEDDED_MODE and EMBEDDED_MODE['frontend'] == 'notebook':
                 #name image file
                 head,tail = os.path.split(archive_name)
                 png_path = os.path.join(head,'.jmol_images')

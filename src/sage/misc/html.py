@@ -198,7 +198,7 @@ class HTML:
                 return ''
             elif EMBEDDED_MODE['frontend']=='sagecell':
                 import sys
-                sys._sage_messages.message_queue.display({'text/html':"<font color='black'>%s</font>"%t})
+                sys._sage_.display_message({'text/plain': 'table', 'text/html': "<font color='black'>%s</font>"%t})
                 return ''
         else:
             return ''
@@ -289,7 +289,7 @@ class HTML:
                 print "<html>"+output_string+"</html>"
             elif EMBEDDED_MODE['frontend']=='sagecell':
                 import sys
-                sys._sage_messages.message_queue.display({'text/html':output_string})
+                sys._sage_.display_message({'text/plain': 'html snippet', 'text/html': output_string})
 
     def iframe(self, url, height=400, width=800):
         r"""

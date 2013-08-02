@@ -683,6 +683,7 @@ class table(SageObject):
         """
         import types
         from itertools import cycle
+        ret = ""
         rows = self._rows
         header_row = self._options['header_row']
         if self._options['frame']:
@@ -693,27 +694,28 @@ class table(SageObject):
         if len(rows) > 0:
             # If the table has < 100 rows, don't truncate the output in the notebook
             if len(rows) <= 100:
-                print "<html>\n<div class=\"notruncate\">\n<table %s class=\"table_form\">\n<tbody>" % frame
+                ret += "<html>\n<div class=\"notruncate\">\n<table %s class=\"table_form\">\n<tbody>" % frame
             else:
-                print "<html>\n<div class=\"truncate\">\n<table %s class=\"table_form\">\n<tbody>" % frame
+                ret += "<html>\n<div class=\"truncate\">\n<table %s class=\"table_form\">\n<tbody>" % frame
 
             # First row:
             if header_row:
-                print "<tr>"
-                self._html_table_row(rows[0], header=header_row)
-                print "</tr>"
+                ret += "<tr>"
+                ret += self._html_table_row(rows[0], header=header_row)
+                ret += "</tr>"
                 rows = rows[1:]
 
             # Other rows:
             for row_class, row in zip(cycle(["row-a", "row-b"]), rows):
-                print "<tr class =\"%s\">" % row_class
-                self._html_table_row(row, header=False)
-                print "</tr>"
-            print "</tbody>\n</table>\n</div>\n</html>"
+                ret += "<tr class =\"%s\">" % row_class
+                ret += self._html_table_row(row, header=False)
+                ret += "</tr>"
+            ret += "</tbody>\n</table>\n</div>\n</html>"
+        return ret
 
     def _html_table_row(self, row, header=False):
         r"""
-        Print the items of a list as one row of an HTML table. Used by
+        Return a string of the items of a list as one row of an HTML table. Used by
         the :meth:`_html_` method.
 
         INPUTS:
@@ -723,15 +725,15 @@ class table(SageObject):
         - ``header`` (default False) - if True, treat this as a header
           row, using ``<th>`` instead of ``<td>``.
 
-        Strings get printed verbatim unless they seem to be LaTeX
+        Strings get included verbatim unless they seem to be LaTeX
         code, in which case they are enclosed in a ``script`` tag
-        appropriate for MathJax. Sage objects are printed using their
+        appropriate for MathJax. Sage objects are included using their
         LaTeX representations.
 
         EXAMPLES::
 
             sage: T = table([['a', 'bb', 'ccccc'], [10, -12, 0], [1, 2, 3]])
-            sage: T._html_table_row(['a', 2, '$x$'])
+            sage: print T._html_table_row(['a', 2, '$x$'])
             <td>a</td>
             <td><script type="math/tex">2</script></td>
             <td><script type="math/tex">x</script></td>
@@ -753,20 +755,22 @@ class table(SageObject):
         else:
             first_column_tag = column_tag
 
+        ret = ""
         # First entry of row:
         entry = row[0]
         if isinstance(entry, Graphics):
-            print first_column_tag % entry.show(linkmode = True)
+            ret += first_column_tag % entry.show(linkmode = True)
         elif isinstance(entry, str):
-            print first_column_tag % math_parse(entry)
+            ret += first_column_tag % math_parse(entry)
         else:
-            print first_column_tag % ('<script type="math/tex">%s</script>' % latex(entry))
+            ret += first_column_tag % ('<script type="math/tex">%s</script>' % latex(entry))
 
         # Other entries:
         for column in xrange(1,len(row)):
             if isinstance(row[column], Graphics):
-                print column_tag % row[column].show(linkmode = True)
+                ret += column_tag % row[column].show(linkmode = True)
             elif isinstance(row[column], str):
-                print column_tag % math_parse(row[column])
+                ret += column_tag % math_parse(row[column])
             else:
-                print column_tag % ('<script type="math/tex">%s</script>' % latex(row[column]))
+                ret += column_tag % ('<script type="math/tex">%s</script>' % latex(row[column]))
+        return ret

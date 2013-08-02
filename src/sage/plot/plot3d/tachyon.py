@@ -316,7 +316,7 @@ class Tachyon(SageObject):
             filename = graphics_filename()
             self.save(os.path.join(SAGE_TMP, 'test.png'), verbose=verbose, extra_opts=extra_opts)
             return
-        if sage.plot.plot.EMBEDDED_MODE:
+        if sage.misc.misc.EMBEDDED_MODE:
             filename = graphics_filename()
             self.save(filename, verbose=verbose, extra_opts=extra_opts)
             return

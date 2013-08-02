@@ -70,19 +70,6 @@ from IPython.utils.traitlets import (Integer, CBool, CaselessStrEnum, Enum,
                                      List, Unicode, Instance, Type)
 from preparser import (preparse, preparse_file, load_wrap)
 
-def embedded():
-    """
-    Returns True if Sage is being run from the notebook.
-
-    EXAMPLES::
-
-        sage: from sage.misc.interpreter import embedded
-        sage: embedded()
-        False
-    """
-    import sage.server.support
-    return sage.server.support.EMBEDDED_MODE
-
 
 #TODO: This global variable do_preparse should be associtated with an
 #IPython InteractiveShell as opposed to a global variable in this

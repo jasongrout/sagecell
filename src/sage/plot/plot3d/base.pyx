@@ -855,7 +855,7 @@ end_scene""" % (render_params.antialiasing,
         return box_min, box_max
 
     def _prepare_for_jmol(self, frame, axes, frame_aspect_ratio, aspect_ratio, zoom):
-        from sage.plot.plot import EMBEDDED_MODE
+        from sage.misc.misc import EMBEDDED_MODE
         if EMBEDDED_MODE:
             s = 6
         else:
@@ -1126,7 +1126,7 @@ end_scene""" % (render_params.antialiasing,
         else:
             filename = tmp_filename()
 
-        from sage.plot.plot import EMBEDDED_MODE
+        from sage.misc.misc import EMBEDDED_MODE
         from sage.doctest import DOCTEST_MODE
         ext = None
 
@@ -1226,6 +1226,10 @@ end_scene""" % (render_params.antialiasing,
             f = open(filename + '.canvas3d', 'w')
             f.write('[%s]' % ','.join(data))
             f.close()
+            if EMBEDDED_MODE and EMBEDDED_MODE['frontend'] == 'sagecell':
+                msg={'application/x-canvas3d': filename + '.canvas3d'}
+                sys._sage_.display_message(msg)
+                sys._sage_.sent_files[filename + '.canvas3d'] = os.path.getmtime(filename + '.canvas3d')
             ext = 'canvas3d'
 
         if ext is None:

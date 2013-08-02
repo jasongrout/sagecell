@@ -21,7 +21,7 @@ import os
 from sage.structure.sage_object import SageObject
 from sage.misc.temporary_file import tmp_filename, tmp_dir
 import plot
-import sage.misc.misc
+import sage.misc.misc as misc
 import sage.misc.viewer
 
 class Animation(SageObject):
@@ -454,7 +454,7 @@ See www.imagemagick.org and www.ffmpeg.org for more information."""
             self.gif(savefile=filename, delay=delay, iterations=iterations)
             return
 
-        if plot.EMBEDDED_MODE:
+        if misc.EMBEDDED_MODE:
             self.gif(delay = delay, iterations = iterations)
         else:
             filename = tmp_filename(ext='.gif')

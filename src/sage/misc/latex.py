@@ -16,8 +16,6 @@ in a mathematical mode (the exact mode depends on circumstances).
 #*****************************************************************************
 
 
-EMBEDDED_MODE = False
-
 COMMON_HEADER = \
 r'''\usepackage{amsmath}
 \usepackage{amssymb}
@@ -57,6 +55,7 @@ import types
 
 from sage.misc.temporary_file import tmp_dir, graphics_filename
 import sage_eval
+from sage.misc.misc import EMBEDDED_MODE
 from sage.misc.sage_ostools import have_program
 from sage.misc.cachefunc import cached_function, cached_method
 
@@ -246,10 +245,10 @@ def builtin_constant_function(x):
 
     TESTS::
 
-        sage: sage.misc.latex.EMBEDDED_MODE = True
+        sage: sage.misc.latex.EMBEDDED_MODE = {'frontend': 'notebook'}
         sage: builtin_constant_function(True)
         '{\\rm True}'
-        sage: sage.misc.latex.EMBEDDED_MODE = False
+        sage: sage.misc.latex.EMBEDDED_MODE = {}
     """
     if EMBEDDED_MODE:
         return "{\\rm %s}"%x
@@ -2105,14 +2104,14 @@ def view(objects, title='Sage', debug=False, sep='', tiny=False,
 
     EXAMPLES::
 
-        sage: sage.misc.latex.EMBEDDED_MODE = True
+        sage: sage.misc.latex.EMBEDDED_MODE = {'frontend': 'notebook'}
         sage: view(3)
         <html><script type="math/tex">\newcommand{\Bold}[1]{\mathbf{#1}}3</script></html>
         sage: view(3, mode='display')
         <html><script type="math/tex; mode=display">\newcommand{\Bold}[1]{\mathbf{#1}}3</script></html>
         sage: view((x,2), combine_all=True) # trac 11775
         <html><script type="math/tex">\newcommand{\Bold}[1]{\mathbf{#1}}x 2</script></html>
-        sage: sage.misc.latex.EMBEDDED_MODE = False
+        sage: sage.misc.latex.EMBEDDED_MODE = {}
 
     TESTS::
 
@@ -2130,7 +2129,7 @@ def view(objects, title='Sage', debug=False, sep='', tiny=False,
         Traceback (most recent call last):
         ...
         ValueError: Unsupported LaTeX engine.
-        sage: sage.misc.latex.EMBEDDED_MODE = True
+        sage: sage.misc.latex.EMBEDDED_MODE = {'frontend':'notebook'}
         sage: view(4, engine="garbage", viewer="pdf")
         Traceback (most recent call last):
         ...
@@ -2365,14 +2364,14 @@ def print_or_typeset(object):
 
         sage: sage.misc.latex.print_or_typeset(3)
         3
-        sage: sage.misc.latex.EMBEDDED_MODE=True
+        sage: sage.misc.latex.EMBEDDED_MODE={'frontend':'notebook'}
         sage: sage.misc.latex.print_or_typeset(3)
         3
         sage: TEMP = sys.displayhook
         sage: sys.displayhook = sage.misc.latex.pretty_print
         sage: sage.misc.latex.print_or_typeset(3)
         <html><script type="math/tex">\newcommand{\Bold}[1]{\mathbf{#1}}3</script></html>
-        sage: sage.misc.latex.EMBEDDED_MODE=False
+        sage: sage.misc.latex.EMBEDDED_MODE={}
         sage: sys.displayhook = TEMP
     """
     import sys

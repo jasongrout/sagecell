@@ -356,9 +356,12 @@ import os
 ## going to be used.
 
 #DEFAULT_FIGSIZE=(6, 3.70820393249937)
-EMBEDDED_MODE = False
+
 import sage.misc.misc
 from sage.misc.misc import srange
+
+# Code elsewhere relies on a module-level EMBEDDED_MODE variable
+from sage.misc.misc import EMBEDDED_MODE
 
 from sage.misc.randstate import current_randstate #for plot adaptive refinement
 from math import sin, cos, pi #for polar_plot

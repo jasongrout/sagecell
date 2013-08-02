@@ -190,7 +190,14 @@ class HTML:
             t += s[:i] + '<script type="math/tex">%s</script>'%\
                      latex(sage_eval(s[6+i:j], locals=locals))
             s = s[j+7:]
-        print "<html><font color='black'>%s</font></html>"%t
+
+        from sage.misc.misc import EMBEDDED_MODE
+        import sys
+        if EMBEDDED_MODE:
+            if EMBEDDED_MODE['frontend']=='notebook':
+                print "<html><font color='black'>%s</font></html>"%t
+            elif EMBEDDED_MODE['frontend']=='sagecell':
+                sys._sage_messages.message_queue.display({'text/html':"<font color='black'>%s</font>"%t})
         return ''
 
     def table(self, x, header = False):
@@ -238,7 +245,7 @@ class HTML:
             </table>
             </div>
             </html>
-
+ 
             sage: html.table([(x,n(sin(x), digits=2)) for x in [0..3]], header = ["$x$", "$\sin(x)$"])
             <html>
             <div class="notruncate">
@@ -271,7 +278,7 @@ class HTML:
 
         """
         from table import table
-        table(x, header_row=header)._html_()
+        print table(x, header_row=header)._html_()
 
     def iframe(self, url, height=400, width=800):
         r"""

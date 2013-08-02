@@ -683,7 +683,7 @@ class table(SageObject):
         """
         import types
         from itertools import cycle
-        ret = ""
+        ret = [] # list of strings
         rows = self._rows
         header_row = self._options['header_row']
         if self._options['frame']:
@@ -694,28 +694,28 @@ class table(SageObject):
         if len(rows) > 0:
             # If the table has < 100 rows, don't truncate the output in the notebook
             if len(rows) <= 100:
-                ret += "<html>\n<div class=\"notruncate\">\n<table %s class=\"table_form\">\n<tbody>" % frame
+                ret.append("<div class=\"notruncate\">\n<table %s class=\"table_form\">\n<tbody>" % frame)
             else:
-                ret += "<html>\n<div class=\"truncate\">\n<table %s class=\"table_form\">\n<tbody>" % frame
+                ret.append("<div class=\"truncate\">\n<table %s class=\"table_form\">\n<tbody>" % frame)
 
             # First row:
             if header_row:
-                ret += "<tr>"
-                ret += self._html_table_row(rows[0], header=header_row)
-                ret += "</tr>"
+                ret.append("<tr>")
+                ret.extend(self._html_table_row(rows[0], header=header_row))
+                ret.append("</tr>")
                 rows = rows[1:]
 
             # Other rows:
             for row_class, row in zip(cycle(["row-a", "row-b"]), rows):
-                ret += "<tr class =\"%s\">" % row_class
-                ret += self._html_table_row(row, header=False)
-                ret += "</tr>"
-            ret += "</tbody>\n</table>\n</div>\n</html>"
-        return ret
+                ret.append("<tr class =\"%s\">" % row_class)
+                ret.extend(self._html_table_row(row, header=False))
+                ret.append("</tr>")
+            ret.append("</tbody>\n</table>\n</div>")
+        return "".join(ret)
 
     def _html_table_row(self, row, header=False):
         r"""
-        Return a string of the items of a list as one row of an HTML table. Used by
+        Return a list of strings of the items of a list as one row of an HTML table. Used by
         the :meth:`_html_` method.
 
         INPUTS:
@@ -733,7 +733,7 @@ class table(SageObject):
         EXAMPLES::
 
             sage: T = table([['a', 'bb', 'ccccc'], [10, -12, 0], [1, 2, 3]])
-            sage: print T._html_table_row(['a', 2, '$x$'])
+            sage: T._html_table_row(['a', 2, '$x$'])
             <td>a</td>
             <td><script type="math/tex">2</script></td>
             <td><script type="math/tex">x</script></td>
@@ -755,22 +755,22 @@ class table(SageObject):
         else:
             first_column_tag = column_tag
 
-        ret = ""
+        ret = [] # list of strings
         # First entry of row:
         entry = row[0]
         if isinstance(entry, Graphics):
-            ret += first_column_tag % entry.show(linkmode = True)
+            ret.append(first_column_tag % entry.show(linkmode = True))
         elif isinstance(entry, str):
-            ret += first_column_tag % math_parse(entry)
+            ret.append(first_column_tag % math_parse(entry))
         else:
-            ret += first_column_tag % ('<script type="math/tex">%s</script>' % latex(entry))
+            ret.append(first_column_tag % ('<script type="math/tex">%s</script>' % latex(entry)))
 
         # Other entries:
         for column in xrange(1,len(row)):
             if isinstance(row[column], Graphics):
-                ret += column_tag % row[column].show(linkmode = True)
+                ret.append(column_tag % row[column].show(linkmode = True))
             elif isinstance(row[column], str):
-                ret += column_tag % math_parse(row[column])
+                ret.append(column_tag % math_parse(row[column]))
             else:
-                ret += column_tag % ('<script type="math/tex">%s</script>' % latex(row[column]))
+                ret.append(column_tag % ('<script type="math/tex">%s</script>' % latex(row[column])))
         return ret

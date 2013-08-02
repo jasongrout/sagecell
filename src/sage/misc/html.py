@@ -192,13 +192,17 @@ class HTML:
             s = s[j+7:]
 
         from sage.misc.misc import EMBEDDED_MODE
-        import sys
         if EMBEDDED_MODE:
             if EMBEDDED_MODE['frontend']=='notebook':
                 print "<html><font color='black'>%s</font></html>"%t
+                return ''
             elif EMBEDDED_MODE['frontend']=='sagecell':
+                import sys
                 sys._sage_messages.message_queue.display({'text/html':"<font color='black'>%s</font>"%t})
-        return ''
+                return ''
+        else:
+            return ''
+
 
     def table(self, x, header = False):
         r"""
@@ -278,7 +282,14 @@ class HTML:
 
         """
         from table import table
-        print table(x, header_row=header)._html_()
+        from sage.misc.misc import EMBEDDED_MODE
+        output_string = table(x, header_row=header)._html_()
+        if EMBEDDED_MODE:
+            if EMBEDDED_MODE['frontend']=='notebook':
+                print "<html>"+output_string+"</html>"
+            elif EMBEDDED_MODE['frontend']=='sagecell':
+                import sys
+                sys._sage_messages.message_queue.display({'text/html':output_string})
 
     def iframe(self, url, height=400, width=800):
         r"""

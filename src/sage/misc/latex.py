@@ -2147,7 +2147,8 @@ def view(objects, title='Sage', debug=False, sep='', tiny=False,
     if pdflatex or (viewer == "pdf" and engine == "latex"):
         engine = "pdflatex"
     # notebook
-    if EMBEDDED_MODE and viewer is None:
+    import sage.misc.misc as misc
+    if misc.EMBEDDED_MODE and viewer is None:
         MathJax_okay = True
         for t in latex.mathjax_avoid_list():
             if s.find(t) != -1:
@@ -2155,14 +2156,28 @@ def view(objects, title='Sage', debug=False, sep='', tiny=False,
             if not MathJax_okay:
                 break
         if MathJax_okay:  # put comma at end of line below?
-            print MathJax().eval(objects, mode=mode, combine_all=combine_all)
+            mathjax_expr = str(MathJax().eval(objects, mode=mode, combine_all=combine_all))
+            if misc.EMBEDDED_MODE['frontend']=='sagecell':
+                mathexpr=mathjax_expr.replace('<html>','').replace('</html>','')
+                import sys
+                sys._sage_messages.message_queue.display({'text/html':mathexpr})
+            else:
+                print mathjax_expr
         else:
             base_dir = os.path.abspath("")
             png_file = graphics_filename(ext='png')
             png_link = "cell://" + png_file
             png(objects, os.path.join(base_dir, png_file),
                 debug=debug, engine=engine)
-            print '<html><img src="%s"></html>'%png_link  # put comma at end of line?
+            if misc.EMBEDDED_MODE['frontend']=='sagecell':
+                import sys
+                import json #TODO: be smart about which json
+                sys._sage_upload_file_pipe.send_bytes(json.dumps([png_file]))
+                sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
+                msg={'text/filename': png_file}
+                sys._sage_messages.message_queue.display(msg)
+            else:
+                print '<html><img src="%s"></html>'%png_link  # put comma at end of line?
         return
     # command line or notebook with viewer
     tmp = tmp_dir('sage_viewer')

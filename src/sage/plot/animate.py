@@ -19,7 +19,7 @@ We plot a circle shooting up to the right::
 import os
 
 from sage.structure.sage_object import SageObject
-from sage.misc.temporary_file import tmp_filename, tmp_dir
+from sage.misc.temporary_file import tmp_filename, tmp_dir, graphics_filename
 import plot
 import sage.misc.misc as misc
 import sage.misc.viewer
@@ -378,7 +378,7 @@ www.ffmpeg.org, or use 'convert' to produce gifs instead."""
                 raise OSError, msg
         else:
             if not savefile:
-                savefile = sage.misc.temporary_file.graphics_filename(ext='gif')
+                savefile = graphics_filename(ext='gif')
             if not savefile.endswith('.gif'):
                 savefile += '.gif'
             savefile = os.path.abspath(savefile)
@@ -389,6 +389,15 @@ www.ffmpeg.org, or use 'convert' to produce gifs instead."""
             from subprocess import check_call, CalledProcessError
             try:
                 check_call(cmd, shell=True)
+                import sage.misc.misc as misc
+                if misc.EMBEDDED_MODE and misc.EMBEDDED_MODE['frontend']=='sagecell':
+                    import json #TODO: be smart about which json
+                    import sys
+                    sys._sage_upload_file_pipe.send_bytes(json.dumps([savefile]))
+                    sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
+                    msg={'text/filename': os.path.basename(savefile)}
+                    sys._sage_messages.message_queue.display(msg)
+
                 if show_path:
                     print "Animation saved to file %s." % savefile
             except (CalledProcessError, OSError):
@@ -554,7 +563,7 @@ please install it and try again."""
             if not savefile:
                 if output_format is None:
                     output_format = 'mpg'
-                savefile = sage.misc.temporary_file.graphics_filename(ext=output_format)
+                savefile = graphics_filename(ext=output_format)
             else:
                 if output_format is None:
                     suffix = os.path.splitext(savefile)[1]

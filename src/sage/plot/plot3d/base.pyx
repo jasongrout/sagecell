@@ -1128,6 +1128,7 @@ end_scene""" % (render_params.antialiasing,
 
         from sage.misc.misc import EMBEDDED_MODE
         from sage.doctest import DOCTEST_MODE
+        import sys
         ext = None
 
         # Tachyon resolution options
@@ -1141,9 +1142,18 @@ end_scene""" % (render_params.antialiasing,
             opts = '-res %s %s'%(figsize[0]*100, figsize[1]*100)
 
         if DOCTEST_MODE or viewer=='tachyon' or (viewer=='java3d' and EMBEDDED_MODE):
-            T = self._prepare_for_tachyon(frame, axes, frame_aspect_ratio, aspect_ratio, zoom)
-            tachyon_rt(T.tachyon(), filename+".png", verbosity, True, opts)
             ext = "png"
+            filename_full=filename+'.'+ext
+            T = self._prepare_for_tachyon(frame, axes, frame_aspect_ratio, aspect_ratio, zoom)
+            tachyon_rt(T.tachyon(), filename_full, verbosity, True, opts)
+            if EMBEDDED_MODE and EMBEDDED_MODE['frontend']=='sagecell':
+                msg={}
+                import json #TODO: be smart about which json
+                sys._sage_upload_file_pipe.send_bytes(json.dumps([filename_full]))
+                sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
+                msg['text/filename']=filename_full
+                sys._sage_messages.message_queue.display(msg)
+
             import sage.misc.viewer
             viewer_app = sage.misc.viewer.png_viewer()
 
@@ -1179,19 +1189,29 @@ end_scene""" % (render_params.antialiasing,
             T.export_jmol(archive_name, force_reload=EMBEDDED_MODE, zoom=zoom*100, **kwds)
             viewer_app = os.path.join(sage.misc.misc.SAGE_LOCAL, "bin/jmol")
 
-            # We need a script to load the file
-            f = open(filename + '.'+ext, 'w')
-            import sagenb
-            if EMBEDDED_MODE:
-                path = "cells/%s/%s" %(sagenb.notebook.interact.SAGE_CELL_ID, archive_name)
+            if EMBEDDED_MODE and EMBEDDED_MODE['frontend']=='sagecell':
+                msg={}
+                import json #TODO: be smart about which json
+                sys._sage_upload_file_pipe.send_bytes(json.dumps([archive_name]))
+                sys._sage_upload_file_pipe.recv_bytes() # confirmation upload happened
+                msg['application/x-jmol']=archive_name
+                sys._sage_messages.message_queue.display(msg)
+
             else:
-                path = archive_name
-            f.write('set defaultdirectory "%s"\n' %path)
-            f.write('script SCRIPT\n')
-            f.close()
+                # We need a script to load the file
+                if EMBEDDED_MODE and EMBEDDED_MODE['frontend']=='notebook':
+                    import sagenb
+                    path = "cells/%s/%s" %(sagenb.notebook.interact.SAGE_CELL_ID, archive_name)
+                else:
+                    path = archive_name
+                f = open(filename + '.'+ext, 'w')
+                f.write('set defaultdirectory "%s"\n' %path) 
+                f.write('script SCRIPT\n')
+                f.close()
 
             # If the server has a Java installation we can make better static images with Jmol
             # Test for Java then make image with Jmol or Tachyon if no JavaVM
+            # TODO: Support sage cell server
             if EMBEDDED_MODE:
                 #name image file
                 head,tail = os.path.split(archive_name)

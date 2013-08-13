@@ -34,11 +34,8 @@ class Exercise:
         self._answer         = answer
         self._check          = check
         self._hints          = hints
-        print 'finished Exercise construction'
 
     def _check_attempt(self, attempt, interact):
-
-        print 'check attempt'
         from sage.misc.all import walltime
         response = "<div class='well'>"
         try:
@@ -49,8 +46,9 @@ class Exercise:
             else:
                 correct = bool(r)
                 comment = ''
-        except TypeError, msg:
-            response += "<h3 style='color:darkgreen'>Huh? -- %s (attempt=%s)</h3>"%(msg, attempt)
+        except Exception as e:
+            response += "<h3 style='color:darkgreen'>Huh? -- %s (attempt=%s)</h3>"%(e, attempt)
+            correct=False
         else:
             if correct:
                 response += "<h1 style='color:blue'>RIGHT!</h1>"
@@ -77,30 +75,27 @@ class Exercise:
                 response += '<h4>%s</h4>'%comment
 
         response += "</div>"
-
-        interact.feedback = HtmlBox(response,label='')
-
+        if not hasattr(interact, 'feedback'):
+            interact.feedback = HtmlBox(response)
+        else:
+            interact.feedback = response
         return correct
 
     def ask(self, cb):
-        print 'Asking %r'%cb
         from sage.misc.all import walltime
         self._start_time = walltime()
         self._number_of_attempts = 0
         attempts = []
         @interact(layout=[[('question',12)],[('attempt',12)], [('feedback',12)]])
         def f(fself, question = ("Question:", HtmlBox(self._question)),
-              attempt   = ('Answer:',self._answer[1])):
-            print 'inner interact, %r, %r'%(fself._changed, attempt)
+              attempt   = ('Answer:',self._answer[1]), **kwargs):
             if 'attempt' in fself._changed and attempt != '':
                 attempts.append(attempt)
                 if self._start_time == 0:
                     self._start_time = walltime()
                 self._number_of_attempts += 1
-                print 'about to check attempt'
-                if self._check_attempt(attempt, self):
+                if self._check_attempt(attempt, fself):
                     cb({'attempts':attempts, 'time':walltime()-self._start_time})
-            print 'finished inner interact'
 
 def exercise(code):
     r"""
@@ -199,7 +194,6 @@ def exercise(code):
         return x.get('title',''), x.get('question', ''), x.get('answer',''), x.get('check',None), x.get('hints',None)
 
     title, question, answer, check, hints = g()
-    print title, question, answer, check, hints
     obj = {}
     obj['E'] = Exercise(question, answer, check, hints)
     obj['title'] = title
@@ -207,27 +201,22 @@ def exercise(code):
         return HtmlBox('<h3 class="lighten">%s</h3>'%t)
 
     the_times = []
-    @interact(layout=[[('go',1), ('title',11,'')],[('')], [('times',12, "<b>Times:</b>")]])#, flicker=True)
+    @interact(layout=[[('go',1), ('title',11,'')],[('_output')], [('times',12, "<b>Times:</b>")]])#, flicker=True)
     def h(self, go    = Button(text=" "*5 + "Go" + " "*7, label=''),
           title = title_control(title),
           times = HtmlBox('No times')):
-        print 'start h'
         c = self._changed
         if 'go' in c or 'another' in c:
-            self.title = 's'#title_control(obj['title'])
+            del self.title
+            self.title = obj['title']
             def cb(obj):
                 the_times.append("%.1f"%obj['time'])
-                h.times = ', '.join(the_times)
+                self.times = ', '.join(the_times)
 
             obj['E'].ask(cb)
-            print 'after ask'
             title, question, answer, check, hints = g()   # get ready for next time.
-            print title, question, answer, check, hints
-            obj['title'] = title
-            print 'construct new exercise'
+            obj['title'] = title_control(title)
             obj['E'] = Exercise(question, answer, check, hints)
-            print 'done'
-    print 'end exercise'
 def closure(code):
     """
     Wrap the given code block (a string) in a closure, i.e., a
@@ -254,3 +243,9 @@ def closure(code):
 #######################
 
 imports = {'exercise': exercise}
+
+# things to fix in interacts:
+
+# * when doing self.control = HtmlBox(), it should delete the old interact and replace it with the new
+# * when doing the above, it should clear out the old output on the page and replace it with the new
+

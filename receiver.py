@@ -307,6 +307,7 @@ set_random_seed()
         user_ns.update(interact_compatibility.imports)
         user_ns.update(dynamic.imports)
         user_ns.update(exercise.imports)
+        print "imported ",exercise.imports
         sys._sage_.update_interact = interact_sagecell.update_interact
 
     """

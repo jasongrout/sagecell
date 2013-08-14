@@ -737,7 +737,10 @@ sagecell.InteractCell.prototype.renderCanvas = function (parent_block) {
                 var cdiv = ce("div", {"class": "sagecell_interactControlCell"});
                 cdiv.style.width = 100 * this.layout[row][col][1] / total + "%";
                 if (this.layout[row][col] !== undefined) {
-                    this.cells[this.layout[row][col][0]] = cdiv;
+                    if (/\S/.test(this.layout[row][col][0])) {
+                        // name is not empty and not just whitespace
+                        this.cells[this.layout[row][col][0]] = cdiv;
+                    }
                     if (this.layout[row][col][0] === "_output") {
                         this.output_block = ce("div", {"class": "sagecell_interactOutput"});
                         cdiv.appendChild(this.output_block);

@@ -350,7 +350,7 @@ def interact(f, controls=[], update=None, layout=None, locations=None, output=Tr
                 if not isinstance(c, (list, tuple)):
                     c = (c, 1)
                 r[i] = c = (c[0], int(c[1]))
-                if c[0] is not None:
+                if c[0] is not None and not c[0].isspace():
                     if c[0] in placed:
                         raise ValueError("duplicate item %s in layout" % (c[0],))
                     placed.add(c[0])

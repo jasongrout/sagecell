@@ -3114,11 +3114,25 @@ def random_rref_matrix(parent, num_pivots):
         ...
         ValueError: the number of pivots must be zero or greater.
 
+    In :trac:`15090` random matrices are made reproducible by using
+    Sage's system for seeds of random number generators to seed the
+    GSL distributions used in this routine. ::
+
+        sage: from sage.matrix.constructor import random_rref_matrix
+        sage: MS = MatrixSpace(QQ, 8, 12)
+        sage: set_random_seed(666)
+        sage: first = [random_rref_matrix(MS, 6) for _ in range(10)]
+        sage: set_random_seed(666)
+        sage: second = [random_rref_matrix(MS, 6) for _ in range(10)]
+        sage: first == second
+        True
+
     AUTHOR:
 
     Billy Wonderly (2010-07)
     """
 
+    import sys
     import sage.gsl.probability_distribution as pd
     from sage.misc.prandom import randint
 
@@ -3141,7 +3155,10 @@ def random_rref_matrix(parent, num_pivots):
         return_matrix=copy(parent.zero_matrix())
         pivots=[0] #Force first column to be a pivot. No harm if no pivots at all.
         # Probability distribution for the placement of leading one's.
+        # Seed comes from Sage's controllable random number scheme
+        # this could be removed if the GSL library is ever interfaced
         pivot_generator=pd.RealDistribution("beta",[1.6,4.3])
+        pivot_generator.set_seed(randint(0, sys.maxint))
         while len(pivots)<num_pivots:
             pivot_column=int(pivot_generator.get_random_element()*num_col)
             if pivot_column not in pivots:
@@ -3156,17 +3173,21 @@ def random_rref_matrix(parent, num_pivots):
             # Keep track of the non-pivot columns by using the pivot_index, start at the first column to
             # the right of the initial pivot column, go until the first column to the left of the next
             # pivot column.
+            # Seeds come from Sage's controllable random number scheme
+            # this could be removed if the GSL library is ever interfaced
+            entry_generator1=pd.RealDistribution("beta",[6,4])
+            entry_generator1.set_seed(randint(0, sys.maxint))
+            entry_generator2=pd.RealDistribution("beta",[2.6,4])
+            entry_generator2.set_seed(randint(0, sys.maxint))
             for pivot_index in range(num_pivots-1):
                 for non_pivot_column_index in range(pivots[pivot_index]+1,pivots[pivot_index+1]):
-                    entry_generator1=pd.RealDistribution("beta",[6,4])
                     # Experimental distribution used to generate the values.
                     for non_pivot_column_entry in range(pivot_index+1):
                         sign1=(2*randint(0,1)-1)
                         return_matrix[non_pivot_column_entry,non_pivot_column_index]=sign1*int(entry_generator1.get_random_element()*((1-non_pivot_column_entry/return_matrix.ncols())*7))
             # Use index to fill entries of the columns to the right of the last pivot column.
             for rest_non_pivot_column in range(pivots[num_pivots-1]+1,num_col):
-                entry_generator2=pd.RealDistribution("beta",[2.6,4])
-                # experimental distribution to generate small values.
+               # experimental distribution to generate small values.
                 for rest_entries in range(num_pivots):
                     sign2=(2*randint(0,1)-1)
                     return_matrix[rest_entries,rest_non_pivot_column]=sign2*int(entry_generator2.get_random_element()*5)
@@ -3555,6 +3576,19 @@ def random_subspaces_matrix(parent, rank=None):
         ...
         ValueError: matrices must have rank zero or greater.
 
+    In :trac:`15090` random matrices are made reproducible by using
+    Sage's system for seeds of random number generators to seed the
+    GSL distribution used in this routine. ::
+
+        sage: from sage.matrix.constructor import random_subspaces_matrix
+        sage: MS = MatrixSpace(QQ, 10, 12)
+        sage: set_random_seed(666)
+        sage: first = [random_subspaces_matrix(MS) for _ in range(10)]
+        sage: set_random_seed(666)
+        sage: second = [random_subspaces_matrix(MS) for _ in range(10)]
+        sage: first == second
+        True
+
     REFERENCES:
 
         .. [BEEZER] `A First Course in Linear Algebra <http://linear.ups.edu/>`_.
@@ -3565,6 +3599,8 @@ def random_subspaces_matrix(parent, rank=None):
     Billy Wonderly (2010-07)
     """
 
+    import sys
+    from sage.misc.prandom import randint
     import sage.gsl.probability_distribution as pd
 
     ring = parent.base_ring()
@@ -3573,8 +3609,11 @@ def random_subspaces_matrix(parent, rank=None):
 
     # If rank is not designated, generate using probability distribution
     # skewing to smaller numbers, always at least 1.
+    # Seed comes from Sage's controllable random number scheme
+    # this could be removed if the GSL library is ever interfaced
     if rank is None:
         left_nullity_generator = pd.RealDistribution("beta", [1.4, 5.5])
+        left_nullity_generator.set_seed(randint(0, sys.maxint))
         nullity = int(left_nullity_generator.get_random_element()*(rows-1) + 1)
         rank = rows - nullity
     if rank<0:

@@ -65,7 +65,7 @@ class SpotLight(PointLight):
         d.update(light_type='spot', angle = self.angle, exponent = self.exponent)
         return d
 
-DEFAULTS = {
+lights = {
     'colors': [
         AmbientLight(color=(0.312,0.188,0.4)),
         DirectionalLight(position=(1,0,1), color=(0.8, 0, 0), fixed='camera'),
@@ -74,35 +74,10 @@ DEFAULTS = {
         DirectionalLight(position=(-1,-1,-1), color=(.9,.7,.9), fixed='camera'),
         ],
     'shades': [
-        AmbientLight(color=(.35, .35, .35)),
-        DirectionalLight(position=(1,0,1), color=(.37, .37, .37), fixed='camera'),
-        DirectionalLight(position=(1,1,1), color=(.37, .37, .37), fixed='camera'),
-        DirectionalLight(position=(0,1,1), color=(.37, .37, .37), fixed='camera'),
+        AmbientLight(color=(.4, .4, .4)),
+        DirectionalLight(position=(0,1,1), color=(.35, .35, .35), fixed='camera'),
+        DirectionalLight(position=(0,0,1), color=(.35, .35, .35), fixed='camera'),
+        DirectionalLight(position=(1,1,1), color=(.25, .25, .25), fixed='camera'),
         DirectionalLight(position=(-1,-1,-1), color=(.7,.7,.7), fixed='camera'),
         ],
-    'sage': [
-        AmbientLight(color=(0.4, 0.4, 0.4)),
-        DirectionalLight(position=(1,0,1), color=(.37, .37, .37), fixed='scene'),
-        DirectionalLight(position=(1,1,1), color=(.37, .37, .37), fixed='scene'),
-        DirectionalLight(position=(0,1,1), color=(.37, .37, .37), fixed='scene'),
-        DirectionalLight(position=(-1,-1,-1), color=(.7,.7,.7), fixed='scene'),
-        ]
     }
-
-m=window.MYSCENE
-c=m.camera
-p=m.make_point({position:-m.camera.position, size:100}, {color: 0xff0000})
-
-"""
-    set_light: (color= 0xffffff) =>
-        ambient = new THREE.AmbientLight(0xdddddd)
-        @scene.add( ambient )
-        directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-        directionalLight.position.set( 1, 1, 1 )
-        @scene.add( directionalLight )
-        directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-        directionalLight.position.set( -1, -1, -1 )
-        @scene.add( directionalLight )
-        @light = new THREE.PointLight(0xffffff)
-        @light.position.set(0,10,0)
-"""

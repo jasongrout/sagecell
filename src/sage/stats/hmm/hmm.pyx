@@ -122,6 +122,7 @@ cdef class HiddenMarkovModel:
         INPUT:
 
             - eps -- nonnegative real number
+            - emissions -- whether or not to include the emissions
 
         OUTPUT:
 
@@ -143,7 +144,10 @@ cdef class HiddenMarkovModel:
                 if m[i,j] < eps:
                     m[i,j] = 0
         from sage.graphs.all import DiGraph
-        return DiGraph(m, weighted=True)
+        g = DiGraph(m, weighted=True)
+        if self._state_symbols is not None:
+            g.relabel(self._state_symbols)
+        return g
 
     def sample(self, Py_ssize_t length, number=None, starting_state=None):
         """
@@ -231,6 +235,9 @@ cdef class HiddenMarkovModel:
         sig_off()
         return gamma
 
+    def state_symbols(self):
+        return self._state_symbols
+    
 
 cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
     """
@@ -253,13 +260,18 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
 
         - ``emission_symbols`` -- None or list (default: None); if
           None, the emission_symbols are the ints [0..N-1], where N
-          is the number of states.  Otherwise, they are the entries
+          is the number of emissions.  Otherwise, they are the entries
           of the list emissions_symbols, which must all be hashable.
 
         - ``normalize`` --bool (default: True); if given, input is
           normalized to define valid probability distributions,
           e.g., the entries of A are made nonnegative and the rows
           sum to 1, and the probabilities in pi are normalized.
+
+        - ``state_symbols`` -- None or list (default: None); if 
+          None, the state_symbols are the ints [0..N-1], where N is
+          the number of states.  Otherwise, they are the entries of
+          the list state_symbols, which must all be hashable.
 
     EXAMPLES::
 
@@ -301,7 +313,7 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
     cdef int n_out
     cdef object _emission_symbols, _emission_symbols_dict
 
-    def __init__(self, A, B, pi, emission_symbols=None, bint normalize=True):
+    def __init__(self, A, B, pi, emission_symbols=None, bint normalize=True, state_symbols=None):
         """
         Create a discrete emissions HMM with transition probability
         matrix A, emission probabilities given by B, initial state
@@ -328,7 +340,11 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
         self.A = util.state_matrix_to_TimeSeries(A, self.N, normalize)
         self._emission_symbols = emission_symbols
         if self._emission_symbols is not None:
-            self._emission_symbols_dict = dict([(y,x) for x,y in enumerate(emission_symbols)])
+            self._emission_symbols_dict = {y:x for x,y in enumerate(emission_symbols)}
+
+        self._state_symbols = state_symbols
+        if self._state_symbols is not None:
+            self._state_symbols_dict = {y:x for x,y in enumerate(state_symbols)}
 
         if not is_Matrix(B):
             B = matrix(B)
@@ -338,6 +354,8 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
         self.n_out = B.ncols()
         if emission_symbols is not None and len(emission_symbols) != self.n_out:
             raise ValueError, "number of emission symbols must equal number of output states"
+        if state_symbols is not None and len(state_symbols) != self.N:
+            raise ValueError, "number of state symbols must equal number of states"
         cdef Py_ssize_t i
         if normalize:
             for i in range(self.N):
@@ -353,8 +371,9 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
             sage: loads(dumps(m)) == m
             True
         """
-        return unpickle_discrete_hmm_v1, \
-               (self.A, self.B, self.pi, self.n_out, self._emission_symbols, self._emission_symbols_dict)
+        return unpickle_discrete_hmm_v2, \
+               (self.A, self.B, self.pi, self.n_out, self._emission_symbols, self._emission_symbols_dict,
+                self._state_symbols, self._state_symbols_dict)
 
     def __cmp__(self, other):
         """
@@ -422,6 +441,8 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
         s += '\nTransition matrix:\n%s'%self.transition_matrix()
         s += '\nEmission matrix:\n%s'%self.emission_matrix()
         s += '\nInitial probabilities: %s'%self.initial_probabilities()
+        if self._state_symbols is not None:
+            s += '\nState symbols: %s'%self._state_symbols
         if self._emission_symbols is not None:
             s += '\nEmission symbols: %s'%self._emission_symbols
         return s
@@ -466,6 +487,48 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
             ['smile', 'smile', 'frown', 'smile']
         """
         d = self._emission_symbols
+        return [d[x] for x in obs]
+
+    def _state_symbols_to_IntList(self, obs):
+        """
+        Internal function used to convert a list of state symbols to an IntList.
+
+        INPUT:
+
+            - obs -- a list of objects
+
+        OUTPUT:
+
+            - an IntList
+
+        EXAMPLES::
+
+            sage: m = hmm.DiscreteHiddenMarkovModel([[0.4,0.6],[0.1,0.9]], [[0.1,0.9],[0.5,0.5]], [.2,.8], ['smile', 'frown'])
+            sage: m._state_symbols_to_IntList(['frown','smile'])
+            [1, 0]
+        """
+        d = self._state_symbols_dict
+        return IntList([d[x] for x in obs])
+
+    def _IntList_to_state_symbols(self, obs):
+        """
+        Internal function used to convert a list of state symbols to an IntList.
+
+        INPUT:
+
+            - obs -- a list of objects
+
+        OUTPUT:
+
+            - an IntList
+
+        EXAMPLES::
+
+            sage: m = hmm.DiscreteHiddenMarkovModel([[0.4,0.6],[0.1,0.9]], [[0.1,0.9],[0.5,0.5]], [.2,.8], ['smile', 'frown'])
+            sage: m._IntList_to_state_symbols(stats.IntList([0,0,1,0]))
+            ['smile', 'smile', 'frown', 'smile']
+        """
+        d = self._state_symbols
         return [d[x] for x in obs]
 
     def log_likelihood(self, obs, bint scale=True):
@@ -677,7 +740,7 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
         OUTPUT:
 
             - an IntList or list of emission symbols
-            - IntList of the actual states the model was in when
+            - IntList or list of state symbols of the actual states the model was in when
               emitting the corresponding symbols
 
         EXAMPLES:
@@ -742,7 +805,10 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
                 else:
                     accum += self.pi._values[i]
         else:
-            q = starting_state
+            if self._state_symbols is not None:
+                q = self._state_symbols_dict[starting_state]
+            else:
+                q = starting_state
             if q < 0 or q >= self.N:
                 raise ValueError, "starting state must be between 0 and %s"%(self.N-1)
 
@@ -769,12 +835,12 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
             obs._values[i] = self._gen_symbol(q, rstate.c_rand_double())
         sig_off()
 
-        if self._emission_symbols is None:
-            # No emission symbol mapping
-            return obs, states
-        else:
-            # Emission symbol mapping, so change our intlist into a list of symbols
-            return self._IntList_to_emission_symbols(obs), states
+        o,s = obs, states
+        if self._emission_symbols is not None:
+            o = self._IntList_to_emission_symbols(obs)
+        if self._state_symbols is not None:
+            s = self._IntList_to_state_symbols(states)
+        return o, s
 
     cdef int _gen_symbol(self, int q, double r):
         """
@@ -855,9 +921,12 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
         elif not isinstance(obs, IntList):
             obs = IntList(obs)
         if log_scale:
-            return self._viterbi_scale(obs)
+            states, prob = self._viterbi_scale(obs)
         else:
-            return self._viterbi(obs)
+            states, prob = self._viterbi(obs)
+        if self._state_symbols is not None:
+            states = self._IntList_to_state_symbols(states)
+        return states, prob
 
     cpdef _viterbi(self, IntList obs):
         """
@@ -1305,6 +1374,24 @@ cdef class DiscreteHiddenMarkovModel(HiddenMarkovModel):
 
         return log_probability, n_iterations
 
+    def graph(self, eps=1e-3, emissions=False):
+        cdef int s, e
+        g = super(DiscreteHiddenMarkovModel, self).graph(eps)
+        if emissions:
+            if self._emission_symbols is not None:
+                e_symbols = self._emission_symbols
+            else:
+                e_symbols = ['e%s'%i for i in range(self.n_out)]
+            s_symbols = self._state_symbols if self._state_symbols is not None else range(self.N)
+            em = self.emission_matrix()
+            edges = []
+            for s in range(self.N):
+                for e in range(self.n_out):
+                    if em[s,e] >= eps:
+                        edges.append((s_symbols[s], e_symbols[e], em[s,e]))
+            g.add_vertices(s_symbols)
+            g.add_edges(edges)
+        return g
 
 # Keep this -- it's for backwards compatibility with the GHMM based implementation
 def unpickle_discrete_hmm_v0(A, B, pi, emission_symbols, name):
@@ -1335,3 +1422,42 @@ def unpickle_discrete_hmm_v1(A, B, pi, n_out, emission_symbols, emission_symbols
     return m
 
 
+def unpickle_discrete_hmm_v2(A, B, pi, n_out, emission_symbols, emission_symbols_dict, state_symbols, state_symbols_dict):
+    """
+    TESTS::
+
+        sage: m = hmm.DiscreteHiddenMarkovModel([[0.4,0.6],[0.1,0.9]], [[0.0,1.0],[0.5,0.5]], [1,0],['a','b'])
+        sage: loads(dumps(m)) == m   # indirect test
+        True
+    """
+    cdef DiscreteHiddenMarkovModel m = PY_NEW(DiscreteHiddenMarkovModel)
+    m.A = A
+    m.B = B
+    m.pi = pi
+    m.n_out = n_out
+    m._emission_symbols = emission_symbols
+    m._emission_symbols_dict = emission_symbols_dict
+    m._state_symbols = state_symbols
+    m._state_symbols_dict = state_symbols_dict
+    return m
+
+"""
+transitions = [[1, 1, 1], #HS->HS, HS->NS, HS->CS
+               [1, 1, 1], #NS->HS, NS->NS, NS->CS
+               [1, 1, 1]] #CS->HS, CS->NS, CS->CS
+
+#Create Emissions Matrix
+#              1         2        3      4       5     6    7      8
+#              S         D        T      H       W     B   HBP     O
+emissions = [[92/600,  43/600, 4/600, 36/600,  93/600, 0, 1/600, 331/600], #HS
+             [90/600,  38/600, 2/600, 30/600, 103/600, 0, 1/600, 336/600], #NS
+             [89/600,  36/600, 1/600, 27/600, 106/600, 0, 1/600, 340/600]] #CS
+
+#Defining Initial Porbabilities
+initial_probabilities = [1, 1, 1] #HS, NS, CS
+
+#Stating the list of possible observations
+observations = list("SDTHWBPO")
+states = list("HNC")
+model = hmm.DiscreteHiddenMarkovModel(transitions, emissions, initial_probabilities, observations,state_symbols=states)
+"""

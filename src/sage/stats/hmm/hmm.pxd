@@ -12,6 +12,7 @@ from sage.stats.intlist cimport IntList
 cdef class HiddenMarkovModel:
     cdef int N
     cdef TimeSeries A, pi
+    cdef object _state_symbols, _state_symbols_dict
 
     cdef TimeSeries _baum_welch_gamma(self, TimeSeries alpha, TimeSeries beta)
 

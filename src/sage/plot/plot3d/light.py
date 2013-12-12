@@ -74,10 +74,10 @@ lights = {
         DirectionalLight(position=(-1,-1,-1), color=(.9,.7,.9), fixed='camera'),
         ],
     'shades': [
-        AmbientLight(color=(.4, .4, .4)),
-        DirectionalLight(position=(0,1,1), color=(.35, .35, .35), fixed='camera'),
-        DirectionalLight(position=(0,0,1), color=(.35, .35, .35), fixed='camera'),
-        DirectionalLight(position=(1,1,1), color=(.25, .25, .25), fixed='camera'),
+        AmbientLight(color=(.6, .6, .6)),
+        DirectionalLight(position=(0,1,1), color=(.5, .5, .5), fixed='camera'),
+        DirectionalLight(position=(0,0,1), color=(.5, .5, .5), fixed='camera'),
+        DirectionalLight(position=(1,1,1), color=(.5, .5, .5), fixed='camera'),
         DirectionalLight(position=(-1,-1,-1), color=(.7,.7,.7), fixed='camera'),
         ],
     }

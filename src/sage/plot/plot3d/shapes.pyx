@@ -346,7 +346,7 @@ cdef class Cylinder(ParametricSurface):
         return "<Cylinder radius='%s' height='%s'/>"%(self.radius, self.height)
 
     def scenetree_geometry(self):
-        return {'type': 'cylinder', 'radius': self.radius, 'height': self.height}
+        return {'type': 'cylinder', 'radius': self.radius, 'height': self.height, 'closed': self.closed}
 
     def tachyon_repr(self, render_params):
         """

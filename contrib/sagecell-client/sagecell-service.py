@@ -10,7 +10,8 @@ try:
     import sys
     from random import randint
     a,b = randint(-2**31,2**31), randint(-2**31,2**31)
-    code = "print %s+%s"%(a,b)
+    #code = "print %s+%s"%(a,b)
+    code = "sys._sage_.stream_message('stdout', %r);"%str(a+b)
     # if you agree with the terms of service at /tos.html
     data = urllib.urlencode(dict(code=code, accepted_tos="true"))
     request = urllib2.urlopen(sys.argv[1]+'/service', data, timeout = 30)

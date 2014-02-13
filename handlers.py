@@ -414,6 +414,7 @@ accepted_tos=true\n""")
                     self.user_variables = msg["content"].get("user_variables", [])
                     self.execute_reply = msg['content']
                     loop.remove_timeout(self.timeout_request)
+                    logger.info("%s: Got execute reply"%self.kernel_id)
                     loop.add_callback(self.finish_request)
             self.shell_handler.msg_from_kernel_callbacks.append(done)
             self.timeout_request = loop.add_timeout(time.time()+default_timeout, self.timeout_request)
@@ -432,18 +433,36 @@ accepted_tos=true\n""")
                             "metadata": {}
                             }
             self.shell_handler.on_message(jsonapi.dumps(exec_message))
+            flushed = self.shell_handler.shell_stream.flush()
+            logger.info("%s: flushed %d messages out shell"%(self.kernel_id,flushed))
 
     def timeout_request(self):
+        logger.info('%s: TIMED OUT'%self.kernel_id)
         ioloop.IOLoop.instance().add_callback(self.finish_request)
     def finish_request(self):
+        #statslogger.info(StatMessage(kernel_id = self.kernel_id, '%r SERVICE DONE'%self.kernel_id)
+        retval = self.iopub_handler.streams
+        print retval
+        if 'stdout' not in retval:
+            print
+            print
+            print "********STOP********"
+            print
+            print
+            print
+            
+            import pdb
+            pdb.set_trace()
+        self.shell_handler.on_close()
+        self.iopub_handler.on_close()
+
         try: # in case kernel has already been killed
+            self.kernel["kill"]()
             self.application.km.end_session(self.kernel_id)
         except:
             pass
-        #statslogger.info(StatMessage(kernel_id = self.kernel_id, '%r SERVICE DONE'%self.kernel_id)
-        retval = self.iopub_handler.streams
-        self.shell_handler.on_close()
-        self.iopub_handler.on_close()
+
+
         # if the timeout is calling the finish_request, the success and other attributes may not be set
         retval.update(success=getattr(self, 'success', 'abort'))
         if hasattr(self, 'user_variables'):
@@ -492,12 +511,15 @@ class ZMQStreamHandler(object):
         try:
             msg = self._unserialize_reply(msg_list)
             send = True
+            logger.info('%s/%s received msg: %s, %s'%(self.kernel_id, self, msg['msg_type'], msg['content']))
             for f in self.msg_from_kernel_callbacks:
                 result = f(msg)
                 if result is False:
                     send = False
             if send:
                 self._output_message(msg)
+            else:
+                logger.info('NOT sending message on!')
         except:
             pass
     
@@ -528,7 +550,9 @@ class ShellHandler(ZMQStreamHandler):
             if timeout <= 0.0 and self.kernel["executing"] == 1:
                 # kill the kernel before the heartbeat is able to
                 self.kill_kernel = True
+                logger.info("shell requesting kernel be killed: %s"%self.kernel_id)
             else:
+                logger.info("execute_reply, but not killing kernel: %s, %s, %s"%(self.kernel_id, timeout, self.kernel["executing"]))
                 self.kernel["deadline"] = (time.time()+timeout)
                 self.kernel["executing"] -= 1
 
@@ -539,6 +563,7 @@ class ShellHandler(ZMQStreamHandler):
                 f(msg)
             self.kernel["executing"] += 1
             self.session.send(self.shell_stream, msg)
+            logger.info('%s: sending shell message to kernel %s'%(self.kernel_id, message))
 
     def on_close(self):
         if self.shell_stream is not None and not self.shell_stream.closed():
@@ -555,6 +580,7 @@ class ShellHandler(ZMQStreamHandler):
         """
         super(ShellHandler, self)._on_zmq_reply(msg_list)
         if self.kill_kernel:
+            logger.info("killing kernel on zmq recv: %s"%self.kernel_id)
             self.shell_stream.flush()
             self.kernel["kill"]()
 
@@ -601,6 +627,7 @@ class IOPubHandler(ZMQStreamHandler):
 
     def on_close(self):
         if self.iopub_stream is not None and not self.iopub_stream.closed():
+            self.iopub_stream.flush()
             self.iopub_stream.on_recv(None)
             self.iopub_stream.close()
         if self.hb_stream is not None and not self.hb_stream.closed():
@@ -620,14 +647,17 @@ class IOPubHandler(ZMQStreamHandler):
 
             def ping_or_dead():
                 self.hb_stream.flush()
+                logger.info('%s: heartbeat for kernel'%(self.kernel_id))
                 try:
                     if self.kernel["executing"] == 0:
                         # only kill the kernel after all pending
                         # execute requests have finished
                         if time.time() > self.kernel["deadline"]:
                             self._kernel_alive = False
+                            logger.info('%s timeout: kernel assumed dead'%self.kernel_id)
                 except:
                     self._kernel_alive = False
+                    logger.info('%s: exception: kernel assumed dead'%self.kernel_id)
 
                 if self._kernel_alive:
                     self._kernel_alive = False
@@ -643,6 +673,7 @@ class IOPubHandler(ZMQStreamHandler):
                         self.stop_hb()
 
             def beat_received(msg):
+                logger.info('%s: received hb'%self.kernel_id)
                 self._kernel_alive = True
 
             self.hb_stream.on_recv(beat_received)
@@ -661,12 +692,14 @@ class IOPubHandler(ZMQStreamHandler):
         callback for delayed heartbeat start
         Only start the hb loop if we haven't been closed during the wait.
         """
+        logger.info("%s: attempting to start heartbeat: closed: %s"%(self.kernel_id, self.hb_stream.closed()))
         if self._beating and not self.hb_stream.closed():
             self._hb_periodic_callback.start()
 
     def stop_hb(self):
         """Stop the heartbeating and cancel all related callbacks."""
         if self._beating:
+            logger.info("%s: Stopping heartbeat"%self.kernel_id)
             self._beating = False
             self._hb_periodic_callback.stop()
             ioloop.IOLoop.instance().remove_timeout(self._start_hb_handle)
@@ -676,7 +709,20 @@ class IOPubHandler(ZMQStreamHandler):
 
     def kernel_died(self):
         try: # in case kernel has already been killed
-            self.iopub_stream.flush()
+            logger.info("iopub kernel_died called")
+            k = self.iopub_stream.flush()
+            logger.info("iopub stream flushed; %d messages"%k)
+            if 'stdout' not in self.streams:
+                print
+                print
+                print "********STOP IN kernel_died********"
+                print
+                print
+                print
+
+                import pdb
+                pdb.set_trace()
+
             self.application.km.end_session(self.kernel_id)
         except:
             pass
@@ -709,8 +755,10 @@ class IOPubServiceHandler(IOPubHandler):
         super(IOPubServiceHandler, self).open(kernel_id)
         from collections import defaultdict
         self.streams = defaultdict(unicode)
+        self.msgs = []
 
     def _output_message(self, msg):
+        self.msgs.append(msg)
         if msg["header"]["msg_type"] == "stream":
             self.streams[msg["content"]["name"]] += msg["content"]["data"]
 

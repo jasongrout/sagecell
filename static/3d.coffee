@@ -173,11 +173,9 @@ class SalvusThreeJS
         @_animate = false
         @_animation_frame = false
 
-        ###
         # This is purely for debugging
         window.MYSCENE=this
         @three = THREE
-        ###
 
     data_url: (type='png') =>   # 'png' or 'jpeg'
         return @renderer.domElement.toDataURL("image/#{type}")
